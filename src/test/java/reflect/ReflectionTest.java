@@ -1,5 +1,6 @@
 package reflect;
 
+import lombok.SneakyThrows;
 import mybatis.ReflectionUtils;
 import org.junit.Test;
 
@@ -86,5 +87,40 @@ public class ReflectionTest {
         System.out.println("-------------");
 
         System.out.println(ReflectionUtils.invokeMethodByName(person, "getNameAndAgeWithTarget", new Object[]{"bbbb"}));
+    }
+
+    @Deprecated
+    @Test
+    public void testBeanToMap() {
+
+        Person  person = new Person("zhangsan", 23);
+
+        Thread threadA = new Thread(new Runnable() {
+            @SneakyThrows
+            @Override
+            public void run() {
+                Long begin = System.currentTimeMillis();
+                System.out.println("thread a");
+                for(int i = 0 ;i < 1000; i++) {
+                    //Map<String, Object> resultMap = ReflectionUtils.objectToMap(person);
+                    System.out.println("ThreadA " + i + ":" );
+                }
+                System.out.println("ThreadA costs " + (System.currentTimeMillis() - begin) + "ms");
+            }
+        });
+
+        Thread threadB = new Thread(new Runnable() {
+            @SneakyThrows
+            @Override
+            public void run() {
+                Long begin = System.currentTimeMillis();
+//                for(int i = 0 ;i < 1000; i++) {
+//                    Map<String, Object> resultMap = ReflectionUtils.objectToMap(person);
+//                }
+                System.out.println("ThreadB costs " + (System.currentTimeMillis() - begin) + "ms");
+            }
+        });
+        threadA.start();
+        //threadB.start();
     }
 }

@@ -3,13 +3,17 @@ package mybatis;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.FileCopyUtils;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -115,7 +119,7 @@ public class ReflectionUtils {
         }
     }
 
-    private static Field getAccessibleField(Object obj, String fieldName) {
+    public static Field getAccessibleField(Object obj, String fieldName) {
         Validate.notNull(obj, "object can't be null");
         Validate.notBlank(fieldName, "fieldName can't be blank");
         for(Class<?> superClass = obj.getClass(); superClass != Object.class; superClass = superClass.getSuperclass()) {
@@ -279,6 +283,77 @@ public class ReflectionUtils {
             Method getter = property.getReadMethod();
             Object value = getter != null ? getter.invoke(obj) : null;
             map.put(key, value);
+        }
+        return map;
+    }
+
+    /**
+     * bean 转 map 这个方法适合 bean 的属性值包含list集合的
+     * // TODO 未完善测试，未对list集合中的对象类型进行判断
+     *
+     * @param bean
+     * @return
+     */
+    @Deprecated
+    public static Map<String, Object> beanToMap(Object bean) {
+        Map<String, Object> map = new HashMap<>();
+
+        try {
+            BeanInfo beanInfo = Introspector.getBeanInfo(bean.getClass(), Object.class);
+            PropertyDescriptor[] pds = beanInfo.getPropertyDescriptors();
+            for(PropertyDescriptor pd : pds) {
+                // 属性名
+                String propertyName = pd.getName();
+                // 获取get方法
+                Method getMethod = pd.getReadMethod();
+                // 属性值
+                Object properValue = getMethod.invoke(bean);
+                // 如果属性值为list
+                if(properValue instanceof java.util.List) {
+                    List list = (List) properValue;
+                    // 如果集合不为空
+                    if(!CollectionUtils.isEmpty(list)) {
+                        Class childClass = list.get(0).getClass();
+                        // 如果是常见类型
+                        if(true){
+
+                        }else{
+                            List<Map<String,Object>> mapList = new ArrayList<Map<String, Object>>();
+                            Object obj;
+                            for(int i = 0; i<list.size();i++) {
+                                obj = list.get(i);
+                                Field[] fieldChilds = obj.getClass().getDeclaredFields();
+                                Map<String, Object> resultChild = new HashMap<>();
+                                for(Field field : fieldChilds) {
+                                    boolean accessible2 = field.isAccessible();
+                                    if(!accessible2) {
+                                        field.setAccessible(true);
+                                    }
+                                    String key = field.getName();
+                                    Object objVal = field.get(obj);
+                                    if(null != objVal && !"".equals(objVal)) {
+                                        resultChild.put(key, field.get(obj));
+                                    }
+                                }
+                                mapList.add(resultChild);
+                            }
+                            map.put(propertyName, mapList);
+                        }
+                    }
+                } else {
+                // 如果不是list
+                    if(null != properValue && !"".equals(properValue)) {
+                        map.put(propertyName, properValue);
+                    }
+                }
+
+            }
+        } catch (IntrospectionException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
         }
         return map;
     }

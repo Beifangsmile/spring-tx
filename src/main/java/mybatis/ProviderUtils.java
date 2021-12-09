@@ -12,28 +12,41 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static mybatis.TablePartitionStrategy.*;
+
 /**
  * @description
  * @Author beifang
  * @Create 2021/11/29 17:36
  */
 public class ProviderUtils {
-    //表结构缓存
+    // 用于存储表结构缓存
     private static Map<String, MybatisTable> mybatisTableMap = Maps.newHashMap();
 
+    /**
+     * 更具 实体类class对象，解析成 MybatisTable
+     * @param clazz
+     * @return
+     */
     public static MybatisTable getMybatisTable(Class clazz) {
+        // 判断 缓存中是否已经存储类 该表结构信息
         if (!mybatisTableMap.containsKey(clazz.getName())) {
+            // 不存在
             MybatisTable mybatisTable = new MybatisTable();
             Entity entity = (Entity) clazz.getAnnotation(Entity.class);
             Table table = (Table) clazz.getAnnotation(Table.class);
+
+            // 如果实体类都加上了 @Entity, @Table 两个注解
             if (entity != null && table != null) {
-                //获取表名
+                // 从 @Table 中获取 name 属性 作为表明
                 String tableName = table.name();
                 if (StringUtils.isBlank(tableName)) {
+                    // 进行格式转换
                     tableName = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, clazz.getSimpleName());
                 }
+                // 设置 tableName 属性
                 mybatisTable.setName(tableName);
-
+                // 获取该实体类对象的字段
                 List<Field> fields = getFields(clazz);
                 for (Field field : fields) {
                     Class fieldClass = field.getType();
@@ -42,6 +55,7 @@ public class ProviderUtils {
                             && fieldClass.getAnnotation(Entity.class) == null
                             && !Collection.class.isAssignableFrom(fieldClass)
                             && !Map.class.isAssignableFrom(fieldClass)) {
+
                         MybatisColumn mybatisColumn = getMybatisColumn(field);
                         mybatisColumn.setMybatisTable(mybatisTable);
                         mybatisTable.getMybatisColumnList().add(mybatisColumn);
@@ -54,20 +68,28 @@ public class ProviderUtils {
                             }
                             mybatisTable.setGenerationType(generationType);
                         }
+                        // 是否加了 @Version
                         if (field.getAnnotation(Version.class) != null) {
                             mybatisTable.setVersion(mybatisColumn);
                         }
+                        // 是否加了 @Deleted
                         if (field.getAnnotation(Deleted.class) != null) {
                             mybatisTable.setDeleted(mybatisColumn);
                         }
                     }
                 }
             }
+            // 如果实体类没有加上 @Entity @Table 注解，则缓存空的，并以类名作为表名
             mybatisTableMap.put(clazz.getName(), mybatisTable);
         }
         return mybatisTableMap.get(clazz.getName());
     }
 
+    /**
+     * 根据对象 获取  表名
+     * @param object
+     * @return
+     */
     public static String getTableName(Object object) {
         Class<?> clazz = object.getClass();
 
@@ -113,10 +135,13 @@ public class ProviderUtils {
         return mybatisTableMap.get(clazz.getName()).getName();
     }
 
+
+    // 更具实体类字段获取数据库字段
     private static MybatisColumn getMybatisColumn(Field field) {
         MybatisColumn mybatisColumn = new MybatisColumn();
         mybatisColumn.setFieldName(field.getName());
         String name = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, field.getName());
+
         boolean insertable = true;
         boolean updatable = true;
         boolean nullable = false;
@@ -135,8 +160,13 @@ public class ProviderUtils {
         mybatisColumn.setNullable(nullable);
         return mybatisColumn;
     }
+//
 
-    //递归获取所有Field
+    /**
+     * 向父类递归获取字段直至遇到Object类
+     * @param clazz
+     * @return
+     */
     private static List<Field> getFields(Class clazz) {
         List<Field> fields = Lists.newArrayList();
         Class current = clazz;
@@ -147,7 +177,11 @@ public class ProviderUtils {
         return fields;
     }
 
-
+    /**
+     * 获取 类所定义的字段
+     * @param fields    用来存放字段的容器
+     * @param clazz     需要获取那个类的字段
+     */
     private static void getFields(List<Field> fields, Class clazz) {
         for (Field field : clazz.getDeclaredFields()) {
             fields.add(field);

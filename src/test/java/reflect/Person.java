@@ -1,11 +1,21 @@
 package reflect;
 
+import mybatis.Entity;
+import mybatis.GeneratedValue;
+import mybatis.GenerationType;
+import mybatis.Table;
+import org.junit.Test;
+
 /**
  * @description
  * @Author beifang
  * @Create 2021/12/7 17:14
  */
+@Entity
+@Table(name="person")
 public class Person {
+    @GeneratedValue(strategy = GenerationType.CUSTOM)
+    private String id;
     private String name;
     private Integer age;
 
