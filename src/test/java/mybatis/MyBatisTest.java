@@ -1,6 +1,7 @@
 package mybatis;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import reflect.Person;
 
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.List;
  * @Author beifang
  * @Create 2021/11/28 22:05
  */
+
 public class MyBatisTest {
 
     /**
